@@ -1,10 +1,11 @@
 # encoding: UTF-8
 
 require "active_support/core_ext/module/delegation"
+require "postgres_ext"
 
 module PgSearch
   class ScopeOptions
-    attr_reader :config, :feature_options
+    attr_reader :config, :feature_options, :model
 
     def initialize(config)
       @config = config
@@ -13,12 +14,17 @@ module PgSearch
     end
 
     def apply(scope)
+      # Score.with(my_games: Game.where(id: 1)).joins('JOIN my_games ON scores.game_id = my_games.id')
+      #
       scope.
-        select("#{quoted_table_name}.*, (#{rank}) AS pg_search_rank").
-        where(conditions).
+        with(pg_search_sub_select: pg_search_sub_select).
+        select("#{quoted_table_name}.*, pg_search_sub_select.rank AS pg_search_rank").
+        joins(<<-SQL).
+          JOIN pg_search_sub_select ON pg_search_sub_select.id = #{quoted_table_name}.id
+        SQL
+        where("#{quoted_table_name}.id IN (SELECT id FROM pg_search_sub_select)").
         order("pg_search_rank DESC, #{order_within_rank}").
-        joins(joins).
-        extend(DisableEagerLoading)
+        extend(DisableEagerLoading)#.tap { |s| puts s.to_sql }
     end
 
     # workaround for https://github.com/Casecommons/pg_search/issues/14
@@ -29,6 +35,10 @@ module PgSearch
     end
 
     private
+
+    def pg_search_sub_select
+      model.select("#{quoted_table_name}.id").select("#{rank} AS rank").joins(joins).where(conditions)
+    end
 
     delegate :connection, :quoted_table_name, :to => :@model
 

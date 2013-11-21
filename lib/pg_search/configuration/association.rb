@@ -18,7 +18,7 @@ module PgSearch
       end
 
       def join(primary_key)
-        "LEFT OUTER JOIN (#{relation(primary_key).to_sql}) #{subselect_alias} ON #{subselect_alias}.id = #{primary_key}"
+        "LEFT OUTER JOIN (#{relation(primary_key).to_sql}) AS #{subselect_alias} ON #{subselect_alias}.id = #{primary_key}"
       end
 
       def subselect_alias
