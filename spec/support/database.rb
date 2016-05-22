@@ -38,12 +38,13 @@ if ENV["LOGGER"]
   ActiveRecord::Base.logger = Logger.new(STDOUT)
 end
 
-def install_extension_if_missing(name, query, expected_result) # rubocop:disable Metrics/AbcSize
+def install_extension_if_missing(name, query) # rubocop:disable Metrics/AbcSize
   connection = ActiveRecord::Base.connection
   postgresql_version = connection.send(:postgresql_version)
   result = connection.select_value(query)
-  raise "Unexpected output for #{query}: #{result.inspect}" unless result.downcase == expected_result.downcase
-rescue
+  raise "Unexpected output for #{query}: #{result.inspect}" unless [true, 't', 'T'].include?(result)
+rescue => e
+  puts e
   begin
     if postgresql_version >= 90100
       ActiveRecord::Base.connection.execute "CREATE EXTENSION #{name};"
@@ -62,11 +63,11 @@ rescue
   end
 end
 
-install_extension_if_missing("pg_trgm", "SELECT 'abcdef' % 'cdef'", "t")
+install_extension_if_missing("pg_trgm", "SELECT 'abcdef' % 'cdef'")
 unless postgresql_version < 90000
-  install_extension_if_missing("unaccent", "SELECT unaccent('foo')", "foo")
+  install_extension_if_missing("unaccent", "SELECT unaccent('foo') = 'foo'")
 end
-install_extension_if_missing("fuzzystrmatch", "SELECT dmetaphone('foo')", "f")
+install_extension_if_missing("fuzzystrmatch", "SELECT dmetaphone('foo') = 'F'")
 
 def load_sql(filename)
   connection = ActiveRecord::Base.connection
