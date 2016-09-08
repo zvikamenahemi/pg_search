@@ -17,6 +17,8 @@ module PgSearch
   extend ActiveSupport::Concern
   include Compatibility::ActiveRecord3 if ActiveRecord::VERSION::MAJOR == 3
 
+  mattr_accessor :async_worker
+
   mattr_accessor :multisearch_options
   self.multisearch_options = {}
 
