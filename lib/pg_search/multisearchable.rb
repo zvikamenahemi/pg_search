@@ -21,12 +21,10 @@ module PgSearch
     end
 
     def async_update_pg_search_document
-      puts ">>>>>> in background".blue
       PgSearch.async_worker.perform_async self.class.name, self.id, :update_pg_search_document
     end
 
     def update_pg_search_document
-      puts ">>>>>> update_pg_search_document".blue
       if_conditions = Array(pg_search_multisearchable_options[:if])
       unless_conditions = Array(pg_search_multisearchable_options[:unless])
 
