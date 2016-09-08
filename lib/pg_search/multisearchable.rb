@@ -9,9 +9,19 @@ module PgSearch
           :class_name => "PgSearch::Document",
           :dependent => :delete
 
-        after_save :update_pg_search_document,
-          :if => lambda { PgSearch.multisearch_enabled? }
+        if PgSearch.async_worker
+          after_commit :async_update_pg_search_document,
+            :if => lambda { PgSearch.multisearch_enabled? }
+        else
+          after_save :update_pg_search_document,
+            :if => lambda { PgSearch.multisearch_enabled? }
+        end
+
       end
+    end
+
+    def async_update_pg_search_document
+      PgSearch.async_worker.perform_async self.class.name, self.id, :update_pg_search_document
     end
 
     def update_pg_search_document
